@@ -97,6 +97,10 @@ class SettingsSimulator:
 
             learner.run(env, self.logger)
 
+            # Remove the copy
+            del env
+            del learner
+
         self.curr_simulation += 1
 
     def simulate_all(self):

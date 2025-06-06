@@ -1,0 +1,68 @@
+{
+  "name" : "Subspace Learning",
+
+  "export_figures" : true,
+  "show_figures" : true,
+
+  "simulations" : [
+              {
+        "name": "BKB - Matern",
+        "env": "GaussianSparseEnvironment",
+        "learner": "BKBGPUCBLearner",
+        "trials": 3,
+        "horizon": 2500,
+        "env_config": {
+            "d": 10,
+            "k": 100,
+            "max_val": 10,
+            "min_val": -10,
+            "sigma": 0.1,
+            "r": "32 * x[1] - 16 * x[4] + 8 * x[0] - 45",
+            "r_sigma": 0.1,
+            "trials": 10000
+        },
+        "learner_config": {
+            "B": 1000,
+            "delta": 0.95,
+            "sigma": 0.1,
+            "epsilon" : 0.7,
+            "cov_bound" : 50,
+            "q" : 10,
+            "kernel": "Matern",
+            "kernel_params": {
+                "length": 60,
+                "smoothness" : 2.5
+            }
+        }
+},
+    {
+        "name": "GP-UCB - Matern",
+        "env": "GaussianSparseEnvironment",
+        "learner": "GPUCBLearner",
+        "trials": 3,
+        "horizon": 2500,
+        "env_config": {
+            "d": 10,
+            "k": 100,
+            "max_val": 10,
+            "min_val": -10,
+            "sigma": 0.1,
+            "r": "32 * x[1] - 16 * x[4] + 8 * x[0] - 45",
+            "r_sigma": 0.1,
+            "trials": 10000
+        },
+        "learner_config": {
+            "B": 1000,
+            "delta": 0.95,
+            "sigma": 0.1,
+            "gamma" : 5,
+            "kernel": "Matern",
+            "kernel_params": {
+                "length": 60,
+                "smoothness" : 2.5
+            }
+        }
+    }
+
+  ]
+}

@@ -38,16 +38,16 @@ class ResultLogger:
             writer = csv.writer(f)
             writer.writerow(row)
 
-    def log(self, t, reward, regret):
-        row = [self.curr_sim_name, self.curr_sim_trial, t, "", "", reward, regret,
-               datetime.now().strftime("%Y/%m/%d-%H:%M:%S")]
-
-        if not self.log_file_path:
-            raise RuntimeError("Log file not initialized. Call new_log() first.")
-
-        with open(self.log_file_path, mode="a", newline="", encoding="utf-8") as f:
-            writer = csv.writer(f)
-            writer.writerow(row)
+    # def log(self, t, reward, regret):
+    #     row = [self.curr_sim_name, self.curr_sim_trial, t, "", "", reward, regret,
+    #            datetime.now().strftime("%Y/%m/%d-%H:%M:%S")]
+    #
+    #     if not self.log_file_path:
+    #         raise RuntimeError("Log file not initialized. Call new_log() first.")
+    #
+    #     with open(self.log_file_path, mode="a", newline="", encoding="utf-8") as f:
+    #         writer = csv.writer(f)
+    #         writer.writerow(row)
 
     def set_simulation(self, name, trial):
         self.curr_sim_name = name

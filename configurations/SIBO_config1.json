@@ -1,0 +1,219 @@
+{
+  "name" : "Subspace Learning",
+
+  "export_figures" : true,
+  "show_figures" : true,
+
+  "simulations" : [
+    {
+      "name" : "SIBO - nu = 0.5 l = 2.5",
+
+      "env" : "GaussianSparseEnvironment",
+      "learner" : "SIBOLearner",
+
+      "trials" : 3,
+      "horizon" : 2000,
+
+      "env_config" : {
+        "d" : 6,
+        "k" : 100,
+        "max_val" : 10,
+        "min_val": -10,
+        "sigma" : 0.1,
+        "r" : "32 * x[1] - 16 * x[4] + 8 * x[0] - 45",
+        "r_sigma" : 0.1,
+        "trials" : 10000
+      },
+      "learner_config" : {
+        "m_xi" :  40,
+        "m_phi" : 10,
+        "lamb" : 73,
+        "eps" : 0.001,
+        "k" : 3,
+        "B" : 1000,
+        "delta" : 0.95,
+        "sigma" :0.1,
+        "kernel" : "Matern",
+        "kernel_params" : {
+          "length" : 2.5,
+          "smoothness" : 0.5
+        }
+      }
+    },
+    {
+      "name" : "SIBO - nu = 1.5 l = 2.5",
+
+      "env" : "GaussianSparseEnvironment",
+      "learner" : "SIBOLearner",
+
+      "trials" : 3,
+      "horizon" : 2000,
+
+      "env_config" : {
+        "d" : 6,
+        "k" : 100,
+        "max_val" : 10,
+        "min_val": -10,
+        "sigma" : 0.1,
+        "r" : "32 * x[1] - 16 * x[4] + 8 * x[0] - 45",
+        "r_sigma" : 0.1,
+        "trials" : 10000
+      },
+      "learner_config" : {
+        "m_xi" :  40,
+        "m_phi" : 10,
+        "lamb" : 73,
+        "eps" : 0.001,
+        "k" : 3,
+        "B" : 1000,
+        "delta" : 0.95,
+        "sigma" :0.1,
+        "kernel" : "Matern",
+        "kernel_params" : {
+          "length" : 2.5,
+          "smoothness" : 1.5
+        }
+      }
+    },
+    {
+      "name" : "SIBO - nu = 2.5 l = 2.5",
+
+      "env" : "GaussianSparseEnvironment",
+      "learner" : "SIBOLearner",
+
+      "trials" : 3,
+      "horizon" : 2000,
+
+      "env_config" : {
+        "d" : 6,
+        "k" : 100,
+        "max_val" : 10,
+        "min_val": -10,
+        "sigma" : 0.1,
+        "r" : "32 * x[1] - 16 * x[4] + 8 * x[0] - 45",
+        "r_sigma" : 0.1,
+        "trials" : 10000
+      },
+      "learner_config" : {
+        "m_xi" :  40,
+        "m_phi" : 10,
+        "lamb" : 73,
+        "eps" : 0.001,
+        "k" : 3,
+        "B" : 1000,
+        "delta" : 0.95,
+        "sigma" :0.1,
+        "kernel" : "Matern",
+        "kernel_params" : {
+          "length" : 2.5,
+          "smoothness" : 2.5
+        }
+      }
+    },
+    {
+      "name" : "SIBO - nu = 0.5 l = 5.5",
+
+      "env" : "GaussianSparseEnvironment",
+      "learner" : "SIBOLearner",
+
+      "trials" : 3,
+      "horizon" : 2000,
+
+      "env_config" : {
+        "d" : 6,
+        "k" : 100,
+        "max_val" : 10,
+        "min_val": -10,
+        "sigma" : 0.1,
+        "r" : "32 * x[1] - 16 * x[4] + 8 * x[0] - 45",
+        "r_sigma" : 0.1,
+        "trials" : 10000
+      },
+      "learner_config" : {
+        "m_xi" :  40,
+        "m_phi" : 10,
+        "lamb" : 73,
+        "eps" : 0.001,
+        "k" : 3,
+        "B" : 1000,
+        "delta" : 0.95,
+        "sigma" :0.1,
+        "kernel" : "Matern",
+        "kernel_params" : {
+          "length" : 5.5,
+          "smoothness" : 0.5
+        }
+      }
+    },
+    {
+      "name" : "SIBO - nu = 1.5 l = 5.5",
+
+      "env" : "GaussianSparseEnvironment",
+      "learner" : "SIBOLearner",
+
+      "trials" : 3,
+      "horizon" : 2000,
+
+      "env_config" : {
+        "d" : 6,
+        "k" : 100,
+        "max_val" : 10,
+        "min_val": -10,
+        "sigma" : 0.1,
+        "r" : "32 * x[1] - 16 * x[4] + 8 * x[0] - 45",
+        "r_sigma" : 0.1,
+        "trials" : 10000
+      },
+      "learner_config" : {
+        "m_xi" :  40,
+        "m_phi" : 10,
+        "lamb" : 73,
+        "eps" : 0.001,
+        "k" : 3,
+        "B" : 1000,
+        "delta" : 0.95,
+        "sigma" :0.1,
+        "kernel" : "Matern",
+        "kernel_params" : {
+          "length" : 5.5,
+          "smoothness" : 1.5
+        }
+      }
+    },
+    {
+      "name" : "SIBO - nu = 2.5 l = 5.5",
+
+      "env" : "GaussianSparseEnvironment",
+      "learner" : "SIBOLearner",
+
+      "trials" : 3,
+      "horizon" : 2000,
+
+      "env_config" : {
+        "d" : 6,
+        "k" : 100,
+        "max_val" : 10,
+        "min_val": -10,
+        "sigma" : 0.1,
+        "r" : "32 * x[1] - 16 * x[4] + 8 * x[0] - 45",
+        "r_sigma" : 0.1,
+        "trials" : 10000
+      },
+      "learner_config" : {
+        "m_xi" :  40,
+        "m_phi" : 10,
+        "lamb" : 73,
+        "eps" : 0.001,
+        "k" : 3,
+        "B" : 1000,
+        "delta" : 0.95,
+        "sigma" :0.1,
+        "kernel" : "Matern",
+        "kernel_params" : {
+          "length" : 5.5,
+          "smoothness" : 2.5
+        }
+      }
+    }
+  ]
+}
