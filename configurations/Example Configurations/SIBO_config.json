@@ -6,11 +6,11 @@
 
   "simulations" : [
               {
-        "name": "BKB - Matern",
+        "name": "BKB-Matern-d=10",
         "env": "GaussianSparseEnvironment",
         "learner": "BKBGPUCBLearner",
-        "trials": 3,
-        "horizon": 2500,
+        "trials": 5,
+        "horizon": 2000,
         "env_config": {
             "d": 10,
             "k": 100,

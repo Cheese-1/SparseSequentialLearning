@@ -1,17 +1,15 @@
 from src.Learners import AbstractLearner
 from src.Environments import AbstractEnvironment
 
-from sklearn.gaussian_process import GaussianProcessRegressor
 import numpy as np
 import sklearn.gaussian_process.kernels as kernels
 import cvxpy as cp
 
+class SIBKBLearner(AbstractLearner):
 
-class SIBOLearner(AbstractLearner):
-
-    def __init__(self, T: int, params: dict):
+    def __init__(self, T : int, params : dict):
         """
-        Initialize the Subspace Identification Bayesian Optimization (SI-BO) algorithm.
+        Initialize the SI-BKB algorithm.
 
         :param T: the horizon
         :param params: a dictionary of algorithm configuration parameters. The Required keys are:
@@ -32,6 +30,12 @@ class SIBOLearner(AbstractLearner):
             Desired accuracy rate for the GP-UCB acquisition rule.
         • sigma (float)
             Standard deviation of the Gaussian observation noise from the oracle.
+        • epsilon (float)
+            A parameter to determine the alpha parameter, where \alpha = \frac{1+\varepsilon}{1-\varepsilon}.
+        • cov_bound (float)
+            An upper bound of the kernel
+        • q (float)
+            A factor regulating the inclusion probability
         • kernel
             the kernel name
         • kernel_params (dict)
@@ -52,42 +56,40 @@ class SIBOLearner(AbstractLearner):
         self.A = None                       # The learned subspace transformation
 
         # GP-UCB Index Parameters
-        self.B = params["B"]                # Bound on the function complexity of g
-        self.delta = params["delta"]        # Accuracy rate
-        self.sigma = params["sigma"]        # Standard deviation of the oracle's noise
+        self.B = params["B"]                    # Bound on the function complexity of g
+        self.delta = params["delta"]            # Accuracy rate
+        self.sigma = params["sigma"]            # Standard deviation of the oracle's noise
+        self.eps = params["epsilon"]            # A parameter to determine the alpha parameter, where \alpha = \frac{1+\varepsilon}{1-\varepsilon}.
+        self.cov_bound = params["cov_bound"]    # An upper bound of the kernel
+
+        self.q = params["q"]                    # A factor regulating the inclusion probability
+
 
         # Create the kernel
         self._find_kernel(params["kernel"], params["kernel_params"])
 
-        # Create the Gaussian Regressor
-        self.gpr = GaussianProcessRegressor(
-            kernel=self.kernel,
-            alpha=self.sigma ** 2,
-            optimizer=None,
-            normalize_y=False
-        )
-
         # Record Oracle Queries
         self.xs = []
         self.ys = []
+        self.S_t = np.array([])
 
     def run(self, env: AbstractEnvironment, logger):
         """
-        Runs the SI-BO bandit algorithm for the given environment.
+        Runs the SI-BKB bandit algorithm for the given environment.
 
         :param env: the bandit environment
         :param logger: handles logging of data
         """
+
+        # ------------------------------------------------------- #
+        # Subspace Identification (SI) Phase                      #
+        # ------------------------------------------------------- #
 
         # Find the ambient dimension
         self.d = env.get_ambient_dim()
 
         # Reset rounds
         self.t = 0
-
-        # ------------------------------------------------------- #
-        # Subspace Identification (SI) Phase                      #
-        # ------------------------------------------------------- #
 
         # Sample center means
         centers = []
@@ -105,8 +107,8 @@ class SIBOLearner(AbstractLearner):
         # Compute perturbed directions
         dir_phi = []
         for _ in range(self.m_phi):
-            dir_phi.append(np.random.choice([- 1 / np.sqrt(self.m_xi), 1 / np.sqrt(self.m_xi)],
-                                            size=(env.get_ambient_dim(), self.m_xi)))
+            dir_phi.append(np.random.choice([- 1 / np.sqrt(self.m_xi), 1 / np.sqrt(self.m_xi)], size=(env.get_ambient_dim(), self.m_xi)))
+
 
         # Compute y
         y = np.zeros(self.m_phi)
@@ -145,67 +147,171 @@ class SIBOLearner(AbstractLearner):
 
         y = y / self.eps
 
+
         # Reconstruct the gradient matrix using the Dantzig Selector
         grad_x_dantzig = self._reconstruct_by_dantzig_selector(y, dir_phi)
 
         # Extract the k principal vectors
-        (upper, _, _) = np.linalg.svd(grad_x_dantzig)
+        (upper, _ ,_) = np.linalg.svd(grad_x_dantzig)
         self.A = upper[:self.k]
 
-        # Update the query records
-        self.xs = [self.A @ x for x in self.xs]
+        # Convert matrices to arrays
+        self.xs = np.array(self.xs @ self.A.T)
+        self.ys = np.array(self.ys)
 
         # ------------------------------------------------------- #
-        # Bayesian Optimization (BO) Phase                        #
+        # Bayesian Optimization (BO) Phase with the BKB algorithm #
         # ------------------------------------------------------- #
-        for t in range(1, self.T - self.m_xi * (self.m_phi + 1) + 1):
+
+        # Observe a single arm at random initially
+        contexts = env.generate_context()
+        next_action = np.random.randint(0, len(contexts))
+
+        # Observe the reward
+        reward = env.reveal_reward(contexts[next_action])
+
+        # Record the query
+        self.xs = np.vstack([self.xs, contexts[next_action] @ self.A.T])
+        self.S_t = np.atleast_2d(np.array([contexts[next_action] @ self.A.T]))
+        self.ys = np.append(self.ys, reward)
+
+        env.record_regret(reward, [])
+        logger.log(self.t, env.best_action, next_action, reward, env.regret[-1])
+
+        self.t += 1
+
+        for t in range(2, self.T - self.m_xi * (self.m_phi + 1) + 1):
             # Generate the next contexts
             contexts = env.generate_context()
 
-            # Retrain the GPR
-            self.gpr.fit(self.xs, self.ys)
-
-            # Determine the next action
-            next_action = self._compute_ucb_index(contexts, t)
+            next_action = self._compute_ucb_index(contexts @ self.A.T, self.t)
 
             # Observe the reward
             reward = env.reveal_reward(contexts[next_action])
 
             # Record the query
-            self.xs.append(self.A @ contexts[next_action])
-            self.ys.append(reward)
+            self.xs = np.vstack([self.xs, contexts[next_action] @ self.A.T])
+            self.ys = np.append(self.ys, reward)
+
 
             self.t += 1
 
             env.record_regret(reward, [])
             logger.log(self.t, env.best_action, next_action, reward, env.regret[-1])
 
+
+
     def _compute_ucb_index(self, contexts, time):
         """
-        Computes the GP-UCB Index function
+        Computes the BKB Index function
 
         :params contexts: a matrix of currently observed context vectors
         :params time: the current round
 
         :return: The arm that maximizes the UCB_t function.
         """
-        # Compute mu_t and sigma_t
-        means_t, stds_t = self.gpr.predict(contexts @ self.A.T, return_std=True)
 
-        # Compute gamma_t
-        if time > 1:
-            n_queries = len(self.ys)
-            K = self.gpr.kernel_(self.xs, self.xs)
-            _, logdet = np.linalg.slogdet(np.eye(n_queries) + K / self.sigma ** 2)
-            gamma_t = np.e / (np.e - 1) * 0.5 * logdet
-        else:
-            gamma_t = 0
+        # Update datasets
+        m = len(self.S_t)
 
-        # Find the action with the best index
-        sqrt_beta_t = np.sqrt(2 * self.B + 300 * gamma_t * np.log(time / self.delta) ** 3)
-        best_index = np.argmax(means_t + sqrt_beta_t * stds_t)
+        # Compute auxiliary matrices
+        K_S_t= self.kernel(self.S_t, self.S_t)
+        assert len(K_S_t) == m and len(K_S_t[0]) == m
 
-        return best_index
+        # Symmetrize the matrix to eliminate jitter
+        K = (K_S_t + K_S_t.T) / 2
+        K += 1e-8 * np.eye(m)
+
+        # Decompose the kernel matrix K into eigenpairs
+        eigvals, eigvecs = np.linalg.eigh(K)
+
+        # Clip negative eigenvalues from numerical inaccuracies
+        eigvals_clipped = np.clip(eigvals, a_min=0, a_max=None)
+
+        # Compute the pseudo-inverse of the square root of the kernel matrix
+        eps = 1e-12
+        inv_sqrt_vals = np.array([1 / np.sqrt(l + eps) if l > 0 else 0.0
+                                  for l in eigvals_clipped])
+        sqrt_pinv = eigvecs @ np.diag(inv_sqrt_vals) @ eigvecs.T
+        assert len(sqrt_pinv) == m and len(sqrt_pinv[0]) == m
+
+        # Compute the matrix of Nystrom embeddings.
+        Z_t = self._compute_nystrom_features(self.xs, sqrt_pinv)
+        assert len(Z_t) == time and len(Z_t[0]) == m
+
+        # Compute the matrix of Nystrom embeddings for the contexts
+        k_SX_all = self.kernel(self.S_t, contexts)
+        Z_cand = (sqrt_pinv @ k_SX_all).T
+        assert len(Z_cand) == len(contexts) and len(Z_t[0]) == m
+
+        # Compute the invertible matrix V
+        V = Z_t.T @ Z_t + self.sigma ** 2 * np.eye(m)
+        V_inv = np.linalg.inv(V)
+        assert len(V) == m and len(V[0]) == m
+
+        # Compute the posterior mean
+        mu_t = Z_cand.dot(V_inv @ Z_t.T @ self.ys)
+        assert len(mu_t) == len(contexts)
+
+
+        # Compute the posterior variance
+        quad_cand = np.sum(Z_cand.T  * (Z_t.T @ Z_t @ V_inv  @ Z_cand.T) , axis=0)
+
+        k_diag_cand = np.array([
+            self.kernel(contexts[[i], :], contexts[[i], :])[0, 0]
+            for i in range(contexts.shape[0])
+        ])
+
+        var_t = (1.0 / (self.sigma ** 2)) * (k_diag_cand - quad_cand)
+        assert len(var_t) == len(contexts)
+
+        # Approximate the maximal information gain
+        quad = np.sum(Z_t.T * (Z_t.T @ Z_t @ V_inv @ Z_t.T ), axis=0)
+
+        k_diag_xs = np.array([
+            self.kernel(self.xs[[i], :], self.xs[[i], :])[0, 0]
+            for i in range(self.xs.shape[0])
+        ])
+        observed_var = (1.0 / (self.sigma ** 2)) * (k_diag_xs - quad)
+
+        # Compute the beta factor
+        alpha = (1 + self.eps) / (1 - self.eps)
+        beta_t = 2 * self.sigma * np.sqrt(alpha * np.log(self.cov_bound * time) * sum(observed_var) + np.log(1 / self.delta)) + (1 + 1 / np.sqrt(1 - self.eps)) * self.sigma * self.B
+
+
+        # Select the best action
+        UCB_indices = np.array(mu_t)  + beta_t * np.sqrt(np.array(var_t))
+        best_action = np.argmax(UCB_indices)
+
+
+        # Select the next inducing subset
+
+        # Compute the mask using the Bernoulli Probabilities
+        ps = [np.random.binomial(1,min(self.q * v, 1)) for v in observed_var]
+        mask  = np.array(ps)
+        # Select the next subset
+        self.S_t =  np.vstack([self.xs[mask == 1], contexts[best_action].T])
+
+        return best_action
+
+
+    def _compute_nystrom_features(self, X, sqrt_pinv):
+        """
+        Computes the Nystrom embedding for the given context matrix
+
+        :param X: the context matrix
+        :param sqrt_pinv: the pseudo-inverse square root kernel matrix of the induced subset
+
+        :return: the Nystrom embeddings for the context matrix.
+        """
+        X_arr = np.atleast_2d(np.array(X))
+
+        assert X_arr.shape[1] == self.S_t.shape[1]
+
+        k_SX = self.kernel(self.S_t, X_arr)
+
+        return (sqrt_pinv @ k_SX).T
+
 
     def _reconstruct_by_dantzig_selector(self, y, dir_phi):
         """
@@ -251,17 +357,17 @@ class SIBOLearner(AbstractLearner):
         """
         if name == "RBF":
             self.kernel = kernels.RBF(
-                length_scale=kernel_params["length"]
+                length_scale = kernel_params["length"]
             )
         elif name == "Matern":
             self.kernel = kernels.Matern(
-                length_scale=kernel_params["length"],
-                nu=kernel_params["smoothness"]
+                length_scale = kernel_params["length"],
+                nu = kernel_params["smoothness"]
             )
         elif name == "Rational Quadratic":
             self.kernel = kernels.RationalQuadratic(
-                length_scale=kernel_params["length"],
-                alpha=kernel_params["alpha"]
+                length_scale = kernel_params["length"],
+                alpha = kernel_params["alpha"]
             )
         else:
             raise Exception("Unrecognized kernel name")
