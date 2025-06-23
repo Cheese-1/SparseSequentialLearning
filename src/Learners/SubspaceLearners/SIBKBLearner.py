@@ -320,7 +320,7 @@ class SIBKBLearner(AbstractLearner):
         :param y: a vector representing the approximated matrix, the curvature, and zero-mean noise.
         :param dir_phi: a list of matrices comprised of the direction vector
 
-        :return: the reconstructed low-rank matrix X_\mathrm{DS}
+        :return: the reconstructed low-rank matrix X_{DS}
         """
         # Define the Matrix
         M = cp.Variable((self.d, self.m_xi))
@@ -376,7 +376,7 @@ class SIBKBLearner(AbstractLearner):
         """
         Computes the total reward attained by the algorithm.
 
-        :return: the total obtained reward \sum_{t=1}^T y_t
+        :return: the total obtained reward sum_{t=1}^T y_t
         """
         return np.sum(self.ys)
 
