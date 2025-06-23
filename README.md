@@ -7,7 +7,6 @@ for the Sparse Sequential Learning project. This project is set to be archived w
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 -->
 
----
 
 ## Table of Contents
 
@@ -16,7 +15,6 @@ for the Sparse Sequential Learning project. This project is set to be archived w
 <!--
 - [License](#license)
 -->
----
 
 ## Installation
 
